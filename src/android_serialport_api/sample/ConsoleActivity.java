@@ -328,7 +328,7 @@ public class ConsoleActivity extends SerialPortActivity {
                     continue;
                 }
             }
-            if (!WaitForRequestBody && RecivedData[ConstReqPos - 7] == 0x02 && RecivedData[ConstReqPos - 6] == -1 && RecivedData[ConstReqPos - 5] == -1 &&
+       /*     if (!WaitForRequestBody && RecivedData[ConstReqPos - 7] == 0x02 && RecivedData[ConstReqPos - 6] == -1 && RecivedData[ConstReqPos - 5] == -1 &&
                     RecivedData[ConstReqPos - 4] == 0x7D && RecivedData[ConstReqPos - 3] == 0x65 && RecivedData[ConstReqPos - 2] == 0x06 &&
                     (RecivedData[ConstReqPos - 1] == -111 || RecivedData[ConstReqPos - 1] == -112)) {
                 for (j = 0; j < 7; j++)
@@ -369,7 +369,7 @@ public class ConsoleActivity extends SerialPortActivity {
                     continue;
                 }
             }
-            if ((WaitForResponseBody && ResponseBodyLength < ConstReqPos) || (WaitForRequestBody && RequestBodyLength < ConstReqPos)) {
+       */     if ((WaitForResponseBody && ResponseBodyLength < ConstReqPos) || (WaitForRequestBody && RequestBodyLength < ConstReqPos)) {
                 WaitForResponseBody = false;
                 WaitForRequestBody = false;
                 ConstReqPos = 0;

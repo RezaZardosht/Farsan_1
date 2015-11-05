@@ -80,8 +80,8 @@
       <file leaf-file-name="ConsoleActivity.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/android_serialport_api/sample/ConsoleActivity.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="-0.102389075">
-              <caret line="277" column="17" selection-start-line="277" selection-start-column="17" selection-end-line="277" selection-end-column="17" />
+            <state vertical-scroll-proportion="0.9419795">
+              <caret line="371" column="9" selection-start-line="330" selection-start-column="7" selection-end-line="371" selection-end-column="9" />
               <folding />
             </state>
           </provider>
@@ -293,7 +293,6 @@
         <option value="$PROJECT_DIR$/.navigation/android-serialport-api-master/raw/main.nvg.xml" />
         <option value="$PROJECT_DIR$/src/android_serialport_api/sample/SerialPortActivity.java" />
         <option value="$PROJECT_DIR$/AndroidManifest.xml" />
-        <option value="$PROJECT_DIR$/src/android_serialport_api/sample/ConsoleActivity.java" />
         <option value="$PROJECT_DIR$/res/layout/main.xml" />
         <option value="$PROJECT_DIR$/src/android_serialport_api/sample/MainMenu.java" />
         <option value="$PROJECT_DIR$/src/android_serialport_api/sample/DataBaseHandler.java" />
@@ -305,6 +304,7 @@
         <option value="$PROJECT_DIR$/src/android_serialport_api/sample/HandHeldReal.java" />
         <option value="$PROJECT_DIR$/res/layout/hand_held_real.xml" />
         <option value="$PROJECT_DIR$/src/android_serialport_api/sample/DatabaseHandler.java" />
+        <option value="$PROJECT_DIR$/src/android_serialport_api/sample/ConsoleActivity.java" />
       </list>
     </option>
   </component>
@@ -883,12 +883,12 @@
       <workItem from="1446123038607" duration="605000" />
       <workItem from="1446362839086" duration="299000" />
       <workItem from="1446380971308" duration="218000" />
-      <workItem from="1446709996970" duration="4910000" />
+      <workItem from="1446709996970" duration="5888000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="263018000" />
+    <option name="totallyTimeSpent" value="263996000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -1556,8 +1556,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/android_serialport_api/sample/ConsoleActivity.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="-0.102389075">
-          <caret line="277" column="17" selection-start-line="277" selection-start-column="17" selection-end-line="277" selection-end-column="17" />
+        <state vertical-scroll-proportion="0.9419795">
+          <caret line="371" column="9" selection-start-line="330" selection-start-column="7" selection-end-line="371" selection-end-column="9" />
           <folding />
         </state>
       </provider>
