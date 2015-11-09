@@ -31,20 +31,23 @@ import java.util.TimerTask;
 public class ConsoleActivity extends SerialPortActivity {
 
     EditText mReception;
-    TextView CHWOutLetTemp;
-    TextView HTWOutLetTemp;
-    TextView RefTemp;
-    TextView ValvePosition;
-    TextView CHWInLetTemp;
-    TextView HTWInLetTemp;
-    TextView COWOutLetTemp;
-    TextView CowInLetTemp;
-    TextView DilutionTemp;
-    TextView SolutionTemp;
-    TextView ExhaustTemp;
-    TextView alaki;
-    TextView alaki2;
+    TextView txt_RemainCharzh;
+    TextView txt_TotalVolume;
+    TextView txt_VolumeUse;
+    TextView txt_VolumePeride;
+    TextView txt_VolumeForUse;
+    TextView txt_Debi;
+
     CheckBox chckboxShowData;
+
+    float CurrentDebi;
+    float CurrentKW;
+    int BatteryStaus;
+    int MotorStatus;
+    long TotalDebi;
+    long SubTotalDebi;
+    String LastResetTime;
+    String CurrentTime;
 
     boolean PostToWebPermit = false;
     public static String SERVERIP = "http://192.69.204.34:8002/Sanchoory/";
@@ -54,17 +57,18 @@ public class ConsoleActivity extends SerialPortActivity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.console);
+        txt_RemainCharzh=(TextView) (findViewById(R.id.RemainCharzh));
+        txt_TotalVolume=(TextView) (findViewById(R.id.TotalVolume));
+        txt_VolumeUse=(TextView) (findViewById(R.id.VolumeUse));
+        txt_VolumePeride=(TextView) (findViewById(R.id.VolumePeride));
+        txt_VolumeForUse=(TextView) (findViewById(R.id.VolumeForUse));
+        txt_Debi=(TextView) (findViewById(R.id.Debi));
         jsonRootObject = new JsonChiller();
-
-
-
-
         try {
             SetPreferncesStatusValueOnStartUp();
         } catch (JSONException e) {
             e.printStackTrace();
         }
-
         t = new Timer();
         t.scheduleAtFixedRate(new TimerTask() {
             @Override
@@ -233,7 +237,7 @@ public class ConsoleActivity extends SerialPortActivity {
         @Override
         protected String doInBackground(String... urls) {
             while (Systemrunningafter5sec) {
-                connected= true;
+                connected = true;
                 if (connected && PostStatus != POSTStatus.Waiting && PostToWebPermit) {
                     Log.d("ConsoleActivity", ">>>post");
                     PostStatus = POSTStatus.Waiting;
@@ -272,7 +276,6 @@ public class ConsoleActivity extends SerialPortActivity {
     JsonChiller jsonRootObject;
     JSONObject jsonObj = new JSONObject();
     boolean WaitForRequestBody = false;
-    boolean WaitForResponseBody = false;
     public static final String SETTINGPREFS = "MainSettingPrefs";
 
     private void ParsDataValue(byte[] bytes, int bytesLength) {
@@ -284,7 +287,7 @@ public class ConsoleActivity extends SerialPortActivity {
 //        Log.d("BBBBBB==>", MyStr);
         for (i = 0; i < bytesLength; i++) {
             RecivedData[ConstReqPos++] = bytes[i];
-            if (ConstReqPos < 7) continue;
+            if (ConstReqPos < 5) continue;
             if (ConstReqPos > 60) {
                 ConstReqPos = 0;
                 continue;
@@ -292,24 +295,24 @@ public class ConsoleActivity extends SerialPortActivity {
             //Todo check for all Request Type
             if (ConstReqPos < 7) return;
 
-            if (!WaitForRequestBody && RecivedData[ConstReqPos - 7] == 0x02 && RecivedData[ConstReqPos - 6] == 0x7D && RecivedData[ConstReqPos - 5] == 0x65 &&
-                    RecivedData[ConstReqPos - 4] == -1 && RecivedData[ConstReqPos - 3] == -1 &&
-                    (RecivedData[ConstReqPos - 2] == -111 || RecivedData[ConstReqPos - 2] == -112) && RecivedData[ConstReqPos - 1] == 0x77) {
-                for (j = 0; j < 7; j++)
-                    RequestHeader[j] = (char) RecivedData[ConstReqPos - (7 - j)];
+            if (!WaitForRequestBody && RecivedData[ConstReqPos - 5] == 0x02 && RecivedData[ConstReqPos - 4] == 0x7D && RecivedData[ConstReqPos - 3] == 0x65 &&
+                    (RecivedData[ConstReqPos - 2] == 0x06 && RecivedData[ConstReqPos - 1] == -111 /*0x91*/) &&
+                    (RecivedData[ConstReqPos - 2] == 0x07 || RecivedData[ConstReqPos - 1] == -110 /*0x92*/)) {
+                for (j = 0; j < 5; j++)
+                    RequestHeader[j] = (char) RecivedData[ConstReqPos - (5 - j)];
                 RequestBodyLength = 0;
                 WaitForRequestBody = true;
                 ConstReqPos = 0;
                 continue;
             }
-            if (WaitForRequestBody && ConstReqPos >= 7) {
-                if ((RequestHeader[5] & 0XFF) == 0X91) {
-                    RequestBodyLengthForSum = 7;
-                    RequestBodyLength = 8;
+            if (WaitForRequestBody && ConstReqPos >= 5) {
+                if (((RequestHeader[0] & 0XFF) == 0X91) && (RequestHeader[1] & 0XFF) == 0X06) {
+                    RequestBodyLengthForSum = 14;
+                    RequestBodyLength = 15;
                 }
-                if ((RequestHeader[5] & 0XFF) == 0X90) {
-                    RequestBodyLengthForSum = 8 + RecivedData[6];
-                    RequestBodyLength = 9 + RecivedData[6];
+                if ((RequestHeader[5] & 0XFF) == 0X92 && (RequestHeader[1] & 0XFF) == 0X07) {
+                    RequestBodyLengthForSum = 17;//8 + RecivedData[6];
+                    RequestBodyLength = 18;//9 + RecivedData[6];
                 }
 
                 if (ConstReqPos == RequestBodyLength) {
@@ -320,73 +323,37 @@ public class ConsoleActivity extends SerialPortActivity {
                     MyStr2 = "2 -->";
                     for (j = 0; j < RequestBodyLength; j++)
                         MyStr2 = MyStr2 + "," + String.format("%02X", (RequestBody[j] & 0xFF));
-                    MyStr2 = MyStr2 + " ,Shck= " + CheckPackageSum(RequestHeader, RequestBody, RequestBodyLengthForSum);
-                    Log.d("ConsoleActivity ", MyStr2);
-                    Log.d("ConsoleActivity ", MyStr);
-                    WaitForRequestBody = false;
-                    ConstReqPos = 0;
-                    continue;
-                }
-            }
-       /*     if (!WaitForRequestBody && RecivedData[ConstReqPos - 7] == 0x02 && RecivedData[ConstReqPos - 6] == -1 && RecivedData[ConstReqPos - 5] == -1 &&
-                    RecivedData[ConstReqPos - 4] == 0x7D && RecivedData[ConstReqPos - 3] == 0x65 && RecivedData[ConstReqPos - 2] == 0x06 &&
-                    (RecivedData[ConstReqPos - 1] == -111 || RecivedData[ConstReqPos - 1] == -112)) {
-                for (j = 0; j < 7; j++)
-                    ResponseHeader[j] = (char) RecivedData[ConstReqPos - (7 - j)];
-                ResponseBodyLength = 0;//(RecivedData[6]+ 8);
-                WaitForResponseBody = true;
-                ConstReqPos = 0;
-                continue;
-            }
-            if (WaitForResponseBody && ConstReqPos >= 7) {
-                if ((ResponseHeader[6] & 0XFF) == 0X90) {
-                    ResponseBodyLengthForSum = 6;
-                    ResponseBodyLength = 7;
-                }
-                if ((ResponseHeader[6] & 0XFF) == 0X91) {
-                    ResponseBodyLengthForSum = 8 + RecivedData[6];
-                    ResponseBodyLength = 9 + RecivedData[6];
-                }
-                if (ConstReqPos == ResponseBodyLength) {
-                    for (j = 0; j < ResponseBodyLength; j++)
-                        ResponseBody[j] = (char) RecivedData[j];
-                    MyStr = "1 -->";
-                    for (j = 0; j < ResponseBodyLength; j++)
-                        MyStr = MyStr + "," + String.format("%02X", (ResponseBody[j] & 0xFF));
                     boolean CheckPSum = false;
-                    CheckPSum = CheckPackageSum(ResponseHeader, ResponseBody, ResponseBodyLengthForSum);
-                    MyStr = MyStr + " ,Shck = " + CheckPSum;
-                    Log.d("ConsoleActivity", MyStr);
+                    CheckPSum = CheckPackageSum(RequestHeader, RequestBody, RequestBodyLengthForSum);
+                    MyStr2 = MyStr2 + " ,Shck = " + CheckPSum;
+                    Log.d("ConsoleActivity ", MyStr2);
                     if (CheckPSum) {
                         try {
-                            CheckResponsePackage();
+                            if (((RequestHeader[0] & 0XFF) == 0X91) && (RequestHeader[1] & 0XFF) == 0X06)
+                                CheckResponsePackage();
+                            if ((RequestHeader[5] & 0XFF) == 0X92 && (RequestHeader[1] & 0XFF) == 0X07)
+                                CheckResponsePackageISTime();
                         } catch (JSONException e) {
                             e.printStackTrace();
                         }
                     }
-                    WaitForResponseBody = false;
+                    WaitForRequestBody = false;
                     ConstReqPos = 0;
                     continue;
+
                 }
+
             }
-       */     if ((WaitForResponseBody && ResponseBodyLength < ConstReqPos) || (WaitForRequestBody && RequestBodyLength < ConstReqPos)) {
-                WaitForResponseBody = false;
+
+            if ((WaitForRequestBody && RequestBodyLength < ConstReqPos)) {
                 WaitForRequestBody = false;
                 ConstReqPos = 0;
                 continue;
-
             }
 
         }
     }
 
-    public void CheckResponsePackage() throws JSONException {
-        CheckIsStatusTemp();
-        CheckIsSetting();
-        CheckIsAlarmD();
-        CheckIsOther();
-        SetAppInfo();
-    }
 
     public void SetAppInfo() throws JSONException {
         jsonObj.put("Chiller_no", "01");
@@ -394,75 +361,36 @@ public class ConsoleActivity extends SerialPortActivity {
         jsonObj.put("InOut_Out", "0,0,0,0,0,0,0,0,0,0,0,0");
     }
 
-    public void CheckIsStatusTemp() throws JSONException {
-
-        String MStr = "";
-        MStr = MStr + ResponseBody[0];
-        MStr = MStr + ResponseBody[1];
-        MStr = MStr + ResponseBody[3];
-        Log.d("ConsoleActivity", MStr);
+    public void CheckResponsePackage() throws JSONException {
         try {
-            if (ResponseBody[0] == 2 && ResponseBody[1] == 5 && ResponseBody[3] == 0) {
-                float value = (ResponseBody[9] & 0Xff) * 256 + (ResponseBody[8] & 0XFF);
-                switch (ResponseBody[2]) {
-                    case 0:
-                        jsonRootObject.jsonRootObject.getJSONObject("Status").put("CHWOutLetTemp", String.format("%2.2f", value / 100));
-                        break;
-                    case 1:
-                        jsonRootObject.jsonRootObject.getJSONObject("Status").put("HTWOutLetTemp", String.format("%2.2f", value / 100));
-                         break;
-                    case 2:
-                        jsonRootObject.jsonRootObject.getJSONObject("Status").put("RefTemp", String.format("%2.2f", value / 100));
-                         break;
-                    case 3:
-                        jsonRootObject.jsonRootObject.getJSONObject("Status").put("ValvePosition", String.format("%2.2f", value));
-                        break;
-                    case 8:
-                        jsonRootObject.jsonRootObject.getJSONObject("Status").put("CHWInLetTemp", String.format("%2.2f", value / 100));
-                       break;
-                    case 9:
-                        jsonRootObject.jsonRootObject.getJSONObject("Status").put("HTWInLetTemp", String.format("%2.2f", value / 100));
-                        break;
-                    case 10:
-                        jsonRootObject.jsonRootObject.getJSONObject("Status").put("COWOutLetTemp", String.format("%2.2f", value / 100));
-                        break;
-                    case 11:
-                        jsonRootObject.jsonRootObject.getJSONObject("Status").put("CowInLetTemp", String.format("%2.2f", value / 100));
-                        break;
-                    case 13:
-                        jsonRootObject.jsonRootObject.getJSONObject("Status").put("DilutionTemp", String.format("%2.2f", value / 100));
-                        break;
-                    case 14:
-                        jsonRootObject.jsonRootObject.getJSONObject("Status").put("SolutionTemp", String.format("%2.2f", value / 10));
-                        break;
-                    case 15:
-                        jsonRootObject.jsonRootObject.getJSONObject("Status").put("ExhaustTemp", String.format("%2.2f", value / 10));
-                       break;
-                }
-            }
+            CurrentDebi = (ResponseBody[2] & 0Xff) * 256 + (ResponseBody[1] & 0XFF);
+            CurrentKW = (ResponseBody[4] & 0Xff) * 256 + (ResponseBody[3] & 0XFF);
+            BatteryStaus = (ResponseBody[5] & 0Xff);
+            MotorStatus = (ResponseBody[6] & 0Xff);
+            TotalDebi = (ResponseBody[9] & 0Xff) * 256 * 256 + (ResponseBody[8] & 0XFF) * 256 + (ResponseBody[7] & 0XFF);
+            SubTotalDebi = (ResponseBody[12] & 0Xff) * 256 * 256 + (ResponseBody[11] & 0XFF) * 256 + (ResponseBody[10] & 0XFF);
+
             String Mstr = "";
             Mstr = jsonRootObject.jsonRootObject.getJSONObject("Status").get("CHWOutLetTemp").toString();
-            Mstr = Mstr + "," + jsonRootObject.jsonRootObject.getJSONObject("Status").get("DilutionTemp").toString();
-            Mstr = Mstr + "," + jsonRootObject.jsonRootObject.getJSONObject("Status").get("RefTemp").toString();
-            Mstr = Mstr + "," + jsonRootObject.jsonRootObject.getJSONObject("Status").get("HTWOutLetTemp").toString();
-            Mstr = Mstr + "," + jsonRootObject.jsonRootObject.getJSONObject("Status").get("ValvePosition").toString();
-            Mstr = Mstr + "," + jsonRootObject.jsonRootObject.getJSONObject("Status").get("CHWInLetTemp").toString();
-            Mstr = Mstr + "," + jsonRootObject.jsonRootObject.getJSONObject("Status").get("HTWInLetTemp").toString();
-            Mstr = Mstr + "," + jsonRootObject.jsonRootObject.getJSONObject("Status").get("CowInLetTemp").toString();
-            Mstr = Mstr + "," + jsonRootObject.jsonRootObject.getJSONObject("Status").get("COWOutLetTemp").toString();
-            Mstr = Mstr + "," + jsonRootObject.jsonRootObject.getJSONObject("Status").get("SolutionTemp").toString();
-            Mstr = Mstr + "," + jsonRootObject.jsonRootObject.getJSONObject("Status").get("ExhaustTemp").toString();
-//        Mstr = "1,2,3,4,5,6,7,8,9,10";
-            jsonObj.put("Temp", Mstr);
             if (chckboxShowData.isChecked())
                 mReception.append("\n-->" + Mstr + "\n");
         } catch (JSONException e) {
             e.printStackTrace();
         }
 
-//        mReception.append(Integer.toString( counter++));
-//        mReception.append(jsonRootObject.jsonRootObject.toString());
-//        main.setViewNoStatic(jsonRootObject);
+    }
+
+    public void CheckResponsePackageISTime() throws JSONException {
+        try {
+            LastResetTime = String.format("%02d,%02d,%02d  %02d:%02d", (ResponseBody[5] & 0Xff), (ResponseBody[4] & 0Xff), (ResponseBody[3] & 0Xff), (ResponseBody[2] & 0XFF), (ResponseBody[1] & 0XFF));
+            CurrentTime = String.format("%02d,%02d,%02d  %02d:%02d", (ResponseBody[10] & 0Xff), (ResponseBody[9] & 0Xff), (ResponseBody[8] & 0Xff), (ResponseBody[7] & 0XFF), (ResponseBody[6] & 0XFF));
+            String Mstr = "";
+            Mstr = jsonRootObject.jsonRootObject.getJSONObject("Status").get("CHWOutLetTemp").toString();
+            if (chckboxShowData.isChecked())
+                mReception.append("\n-->" + Mstr + "\n");
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
     }
 
     public void CheckIsSetting() throws JSONException {
@@ -500,7 +428,7 @@ public class ConsoleActivity extends SerialPortActivity {
             if (ResponseBody[0] == 2 && ResponseBody[1] == 0X10 && ResponseBody[2] == 2 && ResponseBody[3] == 0X1A) {
                 jsonRootObject.jsonRootObject.getJSONObject("MainSetting").put("DilutionTemp", String.format("%2.2f", value / 100));
                 editor = shared.edit();
-                editor.putString(SETTINGPREFS+ "DilutionTemp", String.format("%2.2f", value / 100));
+                editor.putString(SETTINGPREFS + "DilutionTemp", String.format("%2.2f", value / 100));
                 editor.commit();
             }
             if (ResponseBody[0] == 2 && ResponseBody[1] == 0X10 && ResponseBody[2] == 2 && ResponseBody[3] == 0X1F) {
@@ -512,25 +440,25 @@ public class ConsoleActivity extends SerialPortActivity {
             if (ResponseBody[0] == 2 && ResponseBody[1] == 0X10 && ResponseBody[2] == 0 && ResponseBody[3] == 0X20) {
                 jsonRootObject.jsonRootObject.getJSONObject("MainSetting").put("Spry2PumpTime", String.format("%2.2f", value));
                 editor = shared.edit();
-                editor.putString(SETTINGPREFS + "Spry2PumpTime", String.format("%2.2f", value ));
+                editor.putString(SETTINGPREFS + "Spry2PumpTime", String.format("%2.2f", value));
                 editor.commit();
             }
             if (ResponseBody[0] == 2 && ResponseBody[1] == 0X10 && ResponseBody[2] == 0 && ResponseBody[3] == 0X1D) {
                 jsonRootObject.jsonRootObject.getJSONObject("MainSetting").put("Spry3PumpTime", String.format("%2.2f", value));
                 editor = shared.edit();
-                editor.putString(SETTINGPREFS + "Spry3PumpTime", String.format("%2.2f", value ));
+                editor.putString(SETTINGPREFS + "Spry3PumpTime", String.format("%2.2f", value));
                 editor.commit();
             }
             if (ResponseBody[0] == 2 && ResponseBody[1] == 0X10 && ResponseBody[2] == 0 && ResponseBody[3] == 0X1E) {
                 jsonRootObject.jsonRootObject.getJSONObject("MainSetting").put("RefPumpGuardTime", String.format("%2.2f", value));
                 editor = shared.edit();
-                editor.putString(SETTINGPREFS + "RefPumpGuardTime", String.format("%2.2f", value ));
+                editor.putString(SETTINGPREFS + "RefPumpGuardTime", String.format("%2.2f", value));
                 editor.commit();
             }
             if (ResponseBody[0] == 2 && ResponseBody[1] == 0X10 && ResponseBody[2] == 7 && ResponseBody[3] == 0X16) {
                 jsonRootObject.jsonRootObject.getJSONObject("MainSetting").put("RefPumpStopTemp", String.format("%2.2f", value / 100));
                 editor = shared.edit();
-                editor.putString(SETTINGPREFS+ "RefPumpStopTemp", String.format("%2.2f", value / 100));
+                editor.putString(SETTINGPREFS + "RefPumpStopTemp", String.format("%2.2f", value / 100));
                 editor.commit();
             }
             if (ResponseBody[0] == 2 && ResponseBody[1] == 0X10 && ResponseBody[2] == 7 && ResponseBody[3] == 0X15) {
@@ -678,7 +606,8 @@ public class ConsoleActivity extends SerialPortActivity {
             Sum = Sum + (body[j] & 0XFF);
         return (Sum & 0XFF) == (body[Length] & 0XFF);
     }
-    private void         SetPreferncesStatusValueOnStartUp() throws JSONException {
+
+    private void SetPreferncesStatusValueOnStartUp() throws JSONException {
         SharedPreferences shared = getSharedPreferences(SETTINGPREFS, MODE_PRIVATE);
         jsonRootObject.jsonRootObject.getJSONObject("MainSetting").put("FreezingTemp", shared.getString(SETTINGPREFS + "CoolingTemp", "0.0"));
         jsonRootObject.jsonRootObject.getJSONObject("MainSetting").put("FreezingTemp", shared.getString(SETTINGPREFS + "HeatingTemp", "0.0"));
@@ -691,7 +620,6 @@ public class ConsoleActivity extends SerialPortActivity {
         jsonRootObject.jsonRootObject.getJSONObject("MainSetting").put("FreezingTemp", shared.getString(SETTINGPREFS + "RefPumpGuardTime", "0.0"));
         jsonRootObject.jsonRootObject.getJSONObject("MainSetting").put("FreezingTemp", shared.getString(SETTINGPREFS + "RefPumpStopTemp", "0.0"));
         jsonRootObject.jsonRootObject.getJSONObject("MainSetting").put("FreezingTemp", shared.getString(SETTINGPREFS + "RefPumpStartTemp", "0.0"));
-
 
 
     }
